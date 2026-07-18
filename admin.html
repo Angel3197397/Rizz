@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RizzAI - Panel de Control</title>
+    <style>
+        body { 
+            background-color: #0b0816; 
+            color: #f3f0ff; 
+            font-family: system-ui, -apple-system, sans-serif; 
+            padding: 20px; 
+            max-width: 500px; 
+            margin: 0 auto; 
+        }
+        h1 { 
+            color: #ff2e93; 
+            text-align: center; 
+            margin-bottom: 20px; 
+            font-size: 1.8rem;
+        }
+        .card { 
+            background: #18142c; 
+            border-radius: 16px; 
+            padding: 20px; 
+            margin-bottom: 20px; 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.04);
+        }
+        label { 
+            display: block; 
+            font-size: 0.8rem; 
+            color: #8b85b1; 
+            margin-bottom: 6px; 
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        input, textarea { 
+            width: 100%; 
+            padding: 12px; 
+            background: #0f0c1b; 
+            border: 1px solid rgba(255,255,255,0.08); 
+            border-radius: 10px; 
+            color: white; 
+            margin-bottom: 12px; 
+            box-sizing: border-box;
+            font-size: 0.95rem;
+            transition: border 0.2s;
+        }
+        input:focus, textarea:focus {
+            border-color: #00f0ff;
+            outline: none;
+        }
+        button { 
+            width: 100%; 
+            background: linear-gradient(90deg, #ff2e93, #e01b76); 
+            color: white; 
+            border: none; 
+            padding: 14px; 
+            border-radius: 10px; 
+            font-weight: 700; 
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 46, 147, 0.3);
+        }
+        button:active {
+            transform: translateY(0px);
+        }
+        .code-item { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            background: #0f0c1b; 
+            padding: 12px 15px; 
+            border-radius: 10px; 
+            margin-bottom: 8px; 
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .code-item .code-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .code-item .code-info .code-name {
+            color: #00f0ff;
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+        .code-item .code-info .code-details {
+            color: #8b85b1;
+            font-size: 0.75rem;
+        }
+        .btn-delete { 
+            width: auto; 
+            background: #ff3333; 
+            padding: 6px 14px; 
+            font-size: 0.75rem;
+            border-radius: 8px;
+        }
+        .btn-delete:hover {
+            background: #ff5555;
+            box-shadow: 0 4px 12px rgba(255, 51, 51, 0.3);
+        }
+        .empty-message {
+            color: #8b85b1;
+            text-align: center;
+            padding: 20px 0;
+            font-size: 0.9rem;
+        }
+        .status-message {
+            padding: 10px 14px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            font-size: 0.85rem;
+            display: none;
+        }
+        .status-message.success {
+            display: block;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            color: #00ff88;
+        }
+        .status-message.error {
+            display: block;
+            background: rgba(255, 51, 51, 0.1);
+            border: 1px solid #ff3333;
+            color: #ff3333;
+        }
+        .status-message.info {
+            display: block;
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid #00f0ff;
+            color: #00f0ff;
+        }
+        .btn-connect {
+            background: linear-gradient(90deg, #00f0ff, #0088ff);
+        }
+        .btn-connect:hover {
+            box-shadow: 0 8px 20px rgba(0, 240, 255, 0.3);
+        }
+        .badge {
+            display: inline-block;
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid rgba(0, 240, 255, 0.2);
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.65rem;
+            color: #00f0ff;
+            font-weight: 700;
+        }
+        .flex-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .flex-row input {
+            margin-bottom: 0;
+            flex: 1;
+        }
+        .flex-row button {
+            width: auto;
+            padding: 12px 20px;
+            white-space: nowrap;
+        }
+        .subtitle {
+            color: #8b85b1;
+            font-size: 0.8rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.1);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🔥 Panel RizzAI</h1>
+    <p class="subtitle">Administra cupones y supervisa el sistema</p>
+    
+    <!-- Mensajes de estado -->
+    <div id="status-message" class="status-message"></div>
+
+    <!-- Conexión -->
+    <div class="card">
+        <label>🔑 Contraseña Maestra</label>
+        <input type="password" id="admin-pass" value="MiClaveSuperSecreta123" placeholder="Introduce la contraseña">
+        <button class="btn-connect" id="btn-connect" onclick="cargarCupones()">
+            🔌 Conectar con Servidor
+        </button>
+    </div>
+
+    <!-- Crear cupón -->
+    <div class="card">
+        <h3 style="margin-bottom: 12px; color: #fff;">✨ Crear Cupón</h3>
+        <label>Código (Ej: YOUTUBE50)</label>
+        <input type="text" id="new-name" placeholder="Ej: PROMOVIP">
+        <div class="flex-row">
+            <div style="flex:1;">
+                <label>Días Premium</label>
+                <input type="number" id="new-days" value="7" style="margin-bottom:0;">
+            </div>
+            <div style="flex:1;">
+                <label>Créditos</label>
+                <input type="number" id="new-credits" value="0" style="margin-bottom:0;">
+            </div>
+        </div>
+        <button onclick="crearCupon()" style="background: linear-gradient(90deg, #00f0ff, #0088ff);">
+            🚀 Crear Nuevo Código
+        </button>
+    </div>
+
+    <!-- Lista de cupones -->
+    <div class="card">
+        <h3 style="margin-bottom: 12px; color: #fff;">📋 Códigos Vigentes</h3>
+        <div id="lista-cupones">
+            <div class="empty-message">🔌 Conecta el servidor para listar los cupones.</div>
+        </div>
+    </div>
+
+    <script>
+        // ════════════════════════════════════════════════
+        //  🔗 CONFIGURACIÓN - CAMBIA ESTO SI ES NECESARIO
+        // ════════════════════════════════════════════════
+        const BACKEND_URL = "https://rizz-urb4.onrender.com"; // ⬅️ TU URL DE RENDER
+
+        function mostrarMensaje(texto, tipo = 'success') {
+            const el = document.getElementById('status-message');
+            el.textContent = texto;
+            el.className = `status-message ${tipo}`;
+            setTimeout(() => {
+                el.className = 'status-message';
+            }, 6000);
+        }
+
+        async function cargarCupones() {
+            const password = document.getElementById('admin-pass').value;
+            const container = document.getElementById('lista-cupones');
+            const btn = document.getElementById('btn-connect');
+            
+            if (!password) {
+                mostrarMensaje('❌ Introduce la contraseña maestra.', 'error');
+                return;
+            }
+
+            // Mostrar loading
+            btn.innerHTML = '<span class="loading-spinner"></span> Conectando...';
+            btn.disabled = true;
+            container.innerHTML = '<div class="empty-message">⏳ Conectando con el servidor...</div>';
+
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/admin/list`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+                
+                const data = await res.json();
+                
+                if (!res.ok) {
+                    mostrarMensaje(`❌ ${data.error || 'Error al conectar'}`, 'error');
+                    container.innerHTML = `<div class="empty-message">❌ ${data.error || 'Error al conectar'}</div>`;
+                    return;
+                }
+                
+                container.innerHTML = "";
+                const keys = Object.keys(data);
+                
+                if (keys.length === 0) {
+                    container.innerHTML = '<div class="empty-message">📭 No hay cupones creados aún.</div>';
+                    mostrarMensaje('✅ Conectado correctamente. No hay cupones.', 'info');
+                    return;
+                }
+
+                keys.forEach(key => {
+                    const item = data[key];
+                    container.innerHTML += `
+                        <div class="code-item">
+                            <div class="code-info">
+                                <span class="code-name">${key}</span>
+                                <span class="code-details">Premium: ${item.diasPremium || 0} días | Créditos: ${item.creditosRegalo || 0}</span>
+                            </div>
+                            <button class="btn-delete" onclick="eliminarCupon('${key}')">🗑️</button>
+                        </div>
+                    `;
+                });
+                mostrarMensaje('✅ Cupones cargados correctamente.', 'success');
+
+            } catch (e) {
+                console.error('Error:', e);
+                container.innerHTML = '<div class="empty-message">❌ Error de conexión con el servidor. Verifica que el backend esté activo.</div>';
+                mostrarMensaje('❌ Error de conexión. Verifica que el backend esté activo y la URL sea correcta.', 'error');
+            } finally {
+                btn.innerHTML = '🔌 Conectar con Servidor';
+                btn.disabled = false;
+            }
+        }
+
+        async function crearCupon() {
+            const password = document.getElementById('admin-pass').value;
+            const nombreCodigo = document.getElementById('new-name').value.trim().toUpperCase();
+            const diasPremium = document.getElementById('new-days').value;
+            const creditosRegalo = document.getElementById('new-credits').value;
+
+            if (!password) {
+                mostrarMensaje('❌ Introduce la contraseña maestra.', 'error');
+                return;
+            }
+
+            if (!nombreCodigo) {
+                mostrarMensaje('❌ Escribe un nombre para el cupón.', 'error');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/admin/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        password, 
+                        nombreCodigo, 
+                        diasPremium: parseInt(diasPremium) || 0, 
+                        creditosRegalo: parseInt(creditosRegalo) || 0 
+                    })
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    mostrarMensaje(`✅ ${data.mensaje || 'Cupón creado con éxito.'}`, 'success');
+                    document.getElementById('new-name').value = '';
+                    cargarCupones();
+                } else {
+                    mostrarMensaje(`❌ ${data.error || 'Error al crear el cupón.'}`, 'error');
+                }
+            } catch (e) {
+                mostrarMensaje('❌ Error de conexión con el servidor.', 'error');
+            }
+        }
+
+        async function eliminarCupon(nombreCodigo) {
+            if (!confirm(`¿Borrar el cupón "${nombreCodigo}" definitivamente?`)) return;
+            
+            const password = document.getElementById('admin-pass').value;
+
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/admin/delete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password, nombreCodigo })
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    mostrarMensaje(`✅ ${data.mensaje || 'Cupón eliminado.'}`, 'success');
+                    cargarCupones();
+                } else {
+                    mostrarMensaje(`❌ ${data.error || 'Error al eliminar.'}`, 'error');
+                }
+            } catch (e) {
+                mostrarMensaje('❌ Error de conexión con el servidor.', 'error');
+            }
+        }
+
+        // Permitir Enter para conectar
+        document.getElementById('admin-pass').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') cargarCupones();
+        });
+
+        // Cargar automáticamente al abrir la página
+        window.addEventListener('load', () => {
+            // Intentar conectar automáticamente con la contraseña por defecto
+            cargarCupones();
+        });
+    </script>
+</body>
+</html>
