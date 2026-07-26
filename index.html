@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#0f0c1b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>GlowTalk – Asistente de Coqueteo con IA</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <style>
+        /* ===== RESET Y VARIABLES ===== */
+        :root {
+            --bg-dark: #0f0c1b;
+            --card-bg: #18142c;
+            --primary-neon: #ff2e93;
+            --secondary-neon: #00f0ff;
+            --gold-premium: #ffaa00;
+            --text-light: #f3f0ff;
+            --text-muted: #8b85b1;
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+        }
+
+        html, body {
+            height: 100%;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            padding: 0 0 calc(10px + var(--safe-bottom)) 0;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--secondary-neon); border-radius: 10px; }
+
+        .bg-glow {
+            position: fixed;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(255,46,147,0.12) 0%, rgba(0,0,0,0) 70%);
+            top: -50px;
+            right: -50px;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* ===== BOTÓN SETTINGS ===== */
+        .btn-settings-toggle {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            background: rgba(24,20,44,0.85);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: var(--text-light);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            transition: all 0.3s cubic-bezier(0.2,0.9,0.4,1);
+            touch-action: manipulation;
+        }
+        .btn-settings-toggle:active {
+            transform: scale(0.92);
+            border-color: var(--secondary-neon);
+            color: var(--secondary-neon);
+        }
+
+        /* ===== BANNER ADSTERRA ===== */
+        .ad-slot-top {
+            width: 100%;
+            max-width: 480px;
+            min-height: 50px;
+            margin: 20px auto 8px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            overflow: hidden;
+            background: transparent;
+            z-index: 1;
+            position: relative;
+        }
+        .ad-slot-top iframe { max-width: 100% !important; }
+
+        /* ===== HEADER ===== */
+        header {
+            text-align: center;
+            margin: 8px 0 12px 0;
+            padding: 0 16px;
+            z-index: 1;
+        }
+        header h1 {
+            font-size: 2.4rem;
+            font-weight: 800;
+            background: linear-gradient(45deg, var(--primary-neon), var(--secondary-neon));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+        header p {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: 2px;
+            font-weight: 400;
+        }
+
+        /* ===== STATUS BAR ===== */
+        .status-container {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 0 4px;
+            gap: 8px;
+            z-index: 1;
+        }
+        .user-id-badge {
+            font-family: monospace;
+            color: var(--secondary-neon);
+            font-weight: bold;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            opacity: 0.8;
+            background: rgba(0,240,255,0.05);
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(0,240,255,0.06);
+        }
+        .credits-badge {
+            background: rgba(0,240,255,0.08);
+            border: 1px solid var(--secondary-neon);
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--secondary-neon);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+        .credits-badge i { width: 14px; height: 14px; }
+
+        /* ===== STREAK RACHA ===== */
+        .streak-box {
+            display: none;
+            width: 100%;
+            max-width: 480px;
+            background: rgba(255,46,147,0.08);
+            border: 1px solid var(--primary-neon);
+            border-radius: 12px;
+            padding: 10px 16px;
+            margin-bottom: 12px;
+            color: var(--primary-neon);
+            font-weight: 700;
+            font-size: 0.85rem;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 15px rgba(255,46,147,0.05);
+            z-index: 1;
+        }
+        .streak-box .streak-fire {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .streak-box .btn-recolectar {
+            background: var(--primary-neon);
+            color: #fff;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 800;
+            font-size: 0.75rem;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .streak-box .btn-recolectar:active { transform: scale(0.95); }
+
+        /* ===== PREMIUM TIMER ===== */
+        .countdown-premium-box {
+            display: none;
+            width: 100%;
+            max-width: 480px;
+            background: linear-gradient(90deg, rgba(255,170,0,0.08), rgba(255,46,147,0.08));
+            border: 1px solid var(--gold-premium);
+            border-radius: 12px;
+            padding: 8px 14px;
+            margin-bottom: 12px;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            box-shadow: 0 4px 15px rgba(255,170,0,0.05);
+            z-index: 1;
+        }
+        .countdown-premium-box .timer-labels {
+            font-weight: 800;
+            color: var(--gold-premium);
+            display: flex;
+            gap: 4px;
+            font-size: 0.85rem;
+        }
+        .countdown-premium-box i { width: 16px; height: 16px; color: var(--gold-premium); }
+
+        /* ===== OCR STATUS ===== */
+        .ocr-status {
+            display: none;
+            background: rgba(0,240,255,0.06);
+            border: 1px solid var(--secondary-neon);
+            border-radius: 10px;
+            padding: 8px 12px;
+            margin-bottom: 12px;
+            font-size: 0.8rem;
+            color: var(--secondary-neon);
+            text-align: center;
+            z-index: 1;
+        }
+        .ocr-status .spin { animation: spin 1s linear infinite; display: inline-block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* ===== MAIN CONTAINER ===== */
+        .main-container {
+            width: 100%;
+            max-width: 480px;
+            background: var(--card-bg);
+            border: 1px solid rgba(255,255,255,0.03);
+            border-radius: 20px;
+            padding: 18px 16px 20px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+            margin-bottom: 16px;
+            z-index: 1;
+        }
+
+        /* ===== UPLOAD ZONE ===== */
+        .upload-zone {
+            border: 2px dashed rgba(0,240,255,0.2);
+            border-radius: 14px;
+            padding: 28px 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: rgba(0,240,255,0.01);
+            margin-bottom: 14px;
+            touch-action: manipulation;
+        }
+        .upload-zone:active {
+            transform: scale(0.98);
+            border-color: var(--secondary-neon);
+            background: rgba(0,240,255,0.04);
+        }
+        .upload-zone i {
+            color: var(--secondary-neon);
+            margin-bottom: 6px;
+            width: 36px;
+            height: 36px;
+        }
+        .upload-zone p { font-size: 0.95rem; font-weight: 600; }
+        .upload-zone span {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: block;
+            margin-top: 2px;
+        }
+
+        /* ===== INPUTS ===== */
+        .text-input-zone {
+            width: 100%;
+            background: rgba(0,0,0,0.25);
+            border: 1px solid rgba(255,255,255,0.06);
+            padding: 12px 14px;
+            border-radius: 12px;
+            color: white;
+            font-size: 0.9rem;
+            margin-bottom: 14px;
+            outline: none;
+            transition: border 0.2s;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        .text-input-zone:focus { border-color: var(--primary-neon); }
+        .text-input-zone::placeholder {
+            color: var(--text-muted);
+            opacity: 0.6;
+        }
+
+        /* ===== PREVIEW ===== */
+        #preview-container {
+            display: none;
+            width: 100%;
+            max-height: 400px;
+            overflow: hidden;
+            border-radius: 12px;
+            margin-bottom: 14px;
+            position: relative;
+            background: rgba(0,0,0,0.2);
+        }
+        #preview-img {
+            width: 100%;
+            height: auto;
+            display: block;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        .btn-remove-thumb {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: rgba(0,0,0,0.7);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.2rem;
+            z-index: 10;
+            touch-action: manipulation;
+        }
+        .btn-remove-thumb:active { transform: scale(0.9); }
+
+        /* ===== SECCIÓN DE TONOS ===== */
+        .tone-section { margin-bottom: 22px; }
+        .tone-section label {
+            display: block;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-align: center;
+        }
+
+        .tone-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .tone-card {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 14px;
+            padding: 12px 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+            touch-action: manipulation;
+            min-height: 64px;
+            text-align: center;
+        }
+        .tone-card:active { transform: scale(0.94); }
+        .tone-card .emoji {
+            font-size: 1.6rem;
+            line-height: 1.2;
+        }
+        .tone-card span {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            line-height: 1.1;
+            transition: color 0.2s;
+        }
+
+        /* ===== COLORES PARA CADA TONO ===== */
+        .tone-card.active[data-tone="salvar"] { border-color: #22d3ee; background: rgba(34,211,238,0.10); }
+        .tone-card.active[data-tone="salvar"] span { color: #22d3ee; }
+        .tone-card.active[data-tone="enamorar"] { border-color: #ff6b8a; background: rgba(255,107,138,0.10); }
+        .tone-card.active[data-tone="enamorar"] span { color: #ff6b8a; }
+        .tone-card.active[data-tone="coquetear"] { border-color: #ff2e93; background: rgba(255,46,147,0.10); }
+        .tone-card.active[data-tone="coquetear"] span { color: #ff2e93; }
+        .tone-card.active[data-tone="jugueton"] { border-color: #fb923c; background: rgba(251,146,60,0.10); }
+        .tone-card.active[data-tone="jugueton"] span { color: #fb923c; }
+        .tone-card.active[data-tone="calentar"] { border-color: #f97316; background: rgba(249,115,22,0.10); }
+        .tone-card.active[data-tone="calentar"] span { color: #f97316; }
+        .tone-card.active[data-tone="divertida"] { border-color: #facc15; background: rgba(250,204,21,0.10); }
+        .tone-card.active[data-tone="divertida"] span { color: #facc15; }
+        .tone-card.active[data-tone="directa"] { border-color: #34d399; background: rgba(52,211,153,0.10); }
+        .tone-card.active[data-tone="directa"] span { color: #34d399; }
+
+        /* ===== BOTÓN GENERAR ===== */
+        .btn-generate {
+            width: 100%;
+            background: linear-gradient(90deg, var(--primary-neon), #e01b76);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            padding: 16px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 6px 20px rgba(255,46,147,0.2);
+            transition: all 0.2s ease;
+            touch-action: manipulation;
+            min-height: 56px;
+        }
+        .btn-generate:active {
+            transform: scale(0.97);
+            box-shadow: 0 4px 12px rgba(255,46,147,0.3);
+        }
+        .btn-generate i { width: 18px; height: 18px; }
+        .btn-generate .spin { animation: spin 0.8s linear infinite; }
+
+        /* ===== RESULTS ===== */
+        .results-section {
+            display: none;
+            margin-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.04);
+            padding-top: 14px;
+        }
+        .results-title {
+            font-size: 0.75rem;
+            color: var(--secondary-neon);
+            margin-bottom: 8px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .results-title i { width: 14px; height: 14px; }
+        .response-box {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 12px;
+            padding: 14px;
+            position: relative;
+            cursor: pointer;
+            touch-action: manipulation;
+            transition: background 0.15s;
+        }
+        .response-box:active { background: rgba(0,240,255,0.05); }
+        .response-text {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            padding-right: 30px;
+            white-space: pre-line;
+            word-break: break-word;
+        }
+        .copy-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            width: 18px;
+            height: 18px;
+            pointer-events: none;
+        }
+
+        /* ===== MODAL ===== */
+        .modal-settings {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(11,8,22,0.97);
+            z-index: 200;
+            flex-direction: column;
+            padding: 16px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 440px;
+            margin: 8px auto 12px auto;
+        }
+        .modal-header h2 { font-size: 1.2rem; font-weight: 800; color: #fff; }
+        .btn-close-modal {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 8px;
+            touch-action: manipulation;
+        }
+        .btn-close-modal:active { transform: scale(0.9); }
+        .btn-close-modal i { width: 24px; height: 24px; }
+        .modal-body {
+            width: 100%;
+            max-width: 440px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            padding-bottom: 30px;
+        }
+
+        .steps-container {
+            display: grid;
+            grid-template-columns: repeat(3,1fr);
+            gap: 8px;
+            background: rgba(255,255,255,0.02);
+            padding: 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.04);
+            text-align: center;
+        }
+        .step-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        .step-number {
+            width: 22px;
+            height: 22px;
+            background: rgba(0,240,255,0.12);
+            color: var(--secondary-neon);
+            font-size: 0.7rem;
+            font-weight: 800;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .step-item p {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        .share-code-card {
+            background: linear-gradient(135deg, rgba(24,20,44,0.6), rgba(15,12,27,0.6));
+            border: 1px solid rgba(0,240,255,0.06);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+        }
+        .share-code-card p {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+        .code-box {
+            font-size: 1.4rem;
+            font-weight: 900;
+            color: var(--secondary-neon);
+            letter-spacing: 3px;
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: inline-block;
+            width: 100%;
+            border: 1px dashed rgba(0,240,255,0.2);
+            word-break: break-all;
+        }
+        .btn-wa-share {
+            background: #25D366;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            touch-action: manipulation;
+            transition: all 0.2s;
+        }
+        .btn-wa-share:active { transform: scale(0.97); }
+        .btn-wa-share i { width: 18px; height: 18px; }
+        .counter-pill {
+            background: rgba(255,46,147,0.08);
+            border: 1px solid rgba(255,46,147,0.15);
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-top: 10px;
+            font-size: 0.75rem;
+            color: var(--primary-neon);
+            font-weight: 700;
+        }
+
+        .input-claim-box {
+            background: rgba(24,20,44,0.5);
+            border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 14px;
+            padding: 12px;
+            display: flex;
+            gap: 8px;
+        }
+        .input-claim-box input {
+            flex: 1;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.06);
+            padding: 12px;
+            border-radius: 10px;
+            color: white;
+            font-size: 0.9rem;
+            outline: none;
+            font-weight: 600;
+            min-width: 0;
+            -webkit-appearance: none;
+        }
+        .input-claim-box input:focus { border-color: var(--secondary-neon); }
+        .input-claim-box button {
+            background: rgba(0,240,255,0.08);
+            border: 1px solid var(--secondary-neon);
+            color: var(--secondary-neon);
+            padding: 0 16px;
+            border-radius: 10px;
+            font-weight: 800;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            touch-action: manipulation;
+            white-space: nowrap;
+        }
+        .input-claim-box button:active {
+            transform: scale(0.95);
+            background: var(--secondary-neon);
+            color: #000;
+        }
+
+        .section-title {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 800;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        .cards-stack { display: flex; flex-direction: column; gap: 12px; }
+
+        .premium-real-card {
+            position: relative;
+            width: 100%;
+            height: 120px;
+            border-radius: 16px;
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.2,0.8,0.2,1);
+            border: 1px solid rgba(255,255,255,0.04);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            touch-action: manipulation;
+        }
+        .premium-real-card:active { transform: scale(0.97); }
+        .premium-real-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -20%;
+            width: 140%;
+            height: 100%;
+            background: linear-gradient(115deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 50%);
+            transform: rotate(-15deg);
+            pointer-events: none;
+        }
+        .card-chip {
+            width: 28px;
+            height: 20px;
+            background: linear-gradient(135deg, #e0b034, #fff6a1, #b8860b);
+            border-radius: 4px;
+            position: relative;
+            margin-top: 4px;
+            opacity: 0.7;
+        }
+        .card-silver { background: linear-gradient(135deg, #1f2533 0%, #0d1017 100%); }
+        .card-gold { background: linear-gradient(135deg, #2c1e05 0%, #140e02 100%); border: 1px solid rgba(255,170,0,0.08); }
+        .card-diamond { background: linear-gradient(135deg, #09202e 0%, #040d14 100%); border: 1px solid rgba(0,240,255,0.08); }
+
+        .premium-real-card.selected { transform: translateY(-2px) scale(1.01); box-shadow: 0 12px 30px rgba(0,240,255,0.15); }
+        .premium-real-card.selected.card-silver { border: 2px solid #bdc3c7; }
+        .premium-real-card.selected.card-gold { border: 2px solid var(--gold-premium); }
+        .premium-real-card.selected.card-diamond { border: 2px solid var(--secondary-neon); }
+
+        .card-top-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            z-index: 2;
+        }
+        .card-title { font-weight: 900; font-size: 1.1rem; letter-spacing: 0.3px; }
+        .card-silver .card-title { color: #e2e8f0; }
+        .card-gold .card-title { color: var(--gold-premium); }
+        .card-diamond .card-title { color: var(--secondary-neon); }
+        .card-duration {
+            font-size: 0.6rem;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.06);
+            padding: 2px 10px;
+            border-radius: 20px;
+            color: #fff;
+            font-weight: 700;
+        }
+        .card-bottom-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            z-index: 2;
+        }
+        .card-requirement {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+        .card-requirement span { font-size: 1rem; font-weight: 900; color: #fff; }
+        .card-status-pill {
+            font-size: 0.7rem;
+            font-weight: 800;
+            background: rgba(0,0,0,0.3);
+            padding: 2px 10px;
+            border-radius: 8px;
+            color: var(--text-muted);
+        }
+
+        /* ===== LEADERBOARD ===== */
+        .leaderboard-list {
+            background: rgba(0,0,0,0.25);
+            border-radius: 12px;
+            padding: 8px 0;
+        }
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            font-size: 0.8rem;
+        }
+        .leaderboard-item:last-child { border-bottom: none; }
+        .leaderboard-pos { width: 24px; font-weight: 900; color: var(--secondary-neon); }
+        .leaderboard-name { flex: 1; color: var(--text-muted); font-family: monospace; }
+        .leaderboard-points { font-weight: 700; color: var(--gold-premium); }
+
+        /* ===== OVERLAY ===== */
+        .ad-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15,12,27,0.96);
+            z-index: 9999;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .countdown-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.06);
+            border-top-color: var(--primary-neon);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+        }
+        .ad-overlay h2 {
+            color: var(--primary-neon);
+            margin-bottom: 4px;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+        .ad-overlay p {
+            color: var(--text-muted);
+            text-align: center;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+        }
+        .ad-banner-overlay {
+            width: 320px;
+            max-width: 90%;
+            min-height: 50px;
+            margin: 0 auto;
+            border-radius: 12px;
+            overflow: hidden;
+            background: transparent;
+        }
+
+        #file-input { display: none; }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 420px) {
+            .main-container { padding: 14px 12px 16px; }
+            header h1 { font-size: 2rem; }
+            .tone-grid { gap: 8px; }
+            .tone-card { padding: 10px 6px; min-height: 56px; }
+            .tone-card .emoji { font-size: 1.4rem; }
+            .tone-card span { font-size: 0.7rem; }
+            .btn-generate { font-size: 0.9rem; padding: 14px; min-height: 50px; }
+            .premium-real-card { height: 100px; padding: 12px; }
+            .card-title { font-size: 0.95rem; }
+            .upload-zone { padding: 20px 12px; }
+            .upload-zone p { font-size: 0.85rem; }
+            .code-box { font-size: 1.1rem; }
+            .modal-body { gap: 14px; }
+        }
+        @media (max-width: 360px) {
+            .tone-grid { grid-template-columns: 1fr; }
+            header h1 { font-size: 1.7rem; }
+        }
+        @media (min-width: 600px) {
+            .main-container { padding: 24px 28px 28px; }
+            .tone-grid { gap: 12px; }
+            .btn-generate { padding: 18px; font-size: 1.05rem; }
+            header h1 { font-size: 2.8rem; }
+        }
+        @media (min-width: 1024px) {
+            body { padding: 20px; }
+            .main-container { max-width: 520px; }
+        }
+
+        input, textarea, button, select, .upload-zone, .tone-card, .response-box,
+        .premium-real-card, .btn-settings-toggle, .btn-close-modal, .btn-wa-share,
+        .input-claim-box button {
+            touch-action: manipulation !important;
+        }
+
+        .main-container {
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-glow"></div>
+
+    <div class="btn-settings-toggle" id="open-settings">
+        <i data-lucide="settings" style="width:20px; height:20px;"></i>
+    </div>
+
+    <div class="ad-slot-top" id="zona-publicidad">
+        <script>
+            atOptions = {
+                'key': 'e88405805d6648f732aa6dff2a434d85',
+                'format': 'iframe',
+                'height': 50,
+                'width': 320,
+                'params': {}
+            };
+        </script>
+        <script src="https://www.highperformanceformat.com/e88405805d6648f732aa6dff2a434d85/invoke.js"></script>
+    </div>
+
+    <header>
+        <h1>GlowTalk</h1>
+        <p>Consigue la respuesta perfecta para tu chat</p>
+    </header>
+
+    <div class="streak-box" id="streak-box">
+        <div class="streak-fire">
+            <i data-lucide="flame" style="width:20px; height:20px; color: var(--primary-neon);"></i>
+            <span id="streak-text">Racha de 0 días</span>
+        </div>
+        <button class="btn-recolectar" id="btn-recolectar-diario">Recolectar</button>
+    </div>
+
+    <div class="countdown-premium-box" id="premium-timer-box">
+        <div style="display:flex; align-items:center; gap:6px; color:#fff; font-weight:700;">
+            <i data-lucide="crown" style="width:16px; height:16px; color:var(--gold-premium);"></i>
+            <span>Acceso Activo:</span>
+        </div>
+        <div class="timer-labels" id="premium-time-string">00d 00h 00m</div>
+    </div>
+
+    <div class="status-container">
+        <span class="user-id-badge" id="perfil-id-usuario">ID: #...</span>
+        <div class="credits-badge">
+            <i data-lucide="zap" style="width:14px; height:14px;"></i>
+            <span id="credits-text">Cargando...</span>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <input type="file" id="file-input" accept="image/*">
+
+        <div class="upload-zone" id="drop-zone">
+            <i data-lucide="image-plus" style="width:36px; height:36px;"></i>
+            <p>Sube la captura del chat</p>
+            <span>WhatsApp, Instagram, Tinder, Bumble...</span>
+        </div>
+
+        <div id="preview-container">
+            <button class="btn-remove-thumb" id="btn-clear-img">&times;</button>
+            <img id="preview-img" src="" alt="Vista previa">
+        </div>
+
+        <div class="ocr-status" id="ocr-status"></div>
+
+        <input type="text" id="input-contexto" class="text-input-zone" placeholder="¿Quieres añadir más detalles? (Opcional)" enterkeyhint="send">
+
+        <div class="tone-section">
+            <label>🎯 Elige tu estrategia</label>
+            <div class="tone-grid" role="radiogroup" aria-label="Tono de respuesta">
+                <div class="tone-card active" data-tone="salvar" role="radio" aria-checked="true" tabindex="0">
+                    <span class="emoji">🛟</span><span>Salvar</span>
+                </div>
+                <div class="tone-card" data-tone="enamorar" role="radio" aria-checked="false" tabindex="0">
+                    <span class="emoji">🥰</span><span>Enamorar</span>
+                </div>
+                <div class="tone-card" data-tone="coquetear" role="radio" aria-checked="false" tabindex="0">
+                    <span class="emoji">💋</span><span>Coquetear</span>
+                </div>
+                <div class="tone-card" data-tone="jugueton" role="radio" aria-checked="false" tabindex="0">
+                    <span class="emoji">😜</span><span>Jugueton</span>
+                </div>
+                <div class="tone-card" data-tone="calentar" role="radio" aria-checked="false" tabindex="0">
+                    <span class="emoji">🔥</span><span>Calentar</span>
+                </div>
+                <div class="tone-card" data-tone="divertida" role="radio" aria-checked="false" tabindex="0">
+                    <span class="emoji">😄</span><span>Divertida</span>
+                </div>
+                <div class="tone-card" data-tone="directa" role="radio" aria-checked="false" tabindex="0">
+                    <span class="emoji">🎯</span><span>Directa</span>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn-generate" id="btn-action">
+            <i data-lucide="wand-2" style="width:18px; height:18px;"></i>
+            Obtener Respuestas Pro
+        </button>
+
+        <div class="results-section" id="results-wrapper">
+            <div class="results-title">
+                <i data-lucide="message-square-text" style="width:14px; height:14px;"></i>
+                Opción recomendada (Toca para copiar):
+            </div>
+            <div class="response-box" id="response-box" role="button" tabindex="0" aria-label="Copiar respuesta">
+                <p class="response-text" id="resp-1">Analizando...</p>
+                <i data-lucide="copy" class="copy-icon" style="width:18px; height:18px;"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL DE AJUSTES ===== -->
+    <div class="modal-settings" id="modal-screen" role="dialog" aria-modal="true" aria-label="Configuración premium">
+        <div class="modal-header">
+            <h2>⚙️ Ajustes</h2>
+            <button class="btn-close-modal" id="close-settings" aria-label="Cerrar configuración">
+                <i data-lucide="x" style="width:24px; height:24px;"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="steps-container">
+                <div class="step-item"><div class="step-number">1</div><p>Comparte tu ID</p></div>
+                <div class="step-item"><div class="step-number">2</div><p>Suman amigos</p></div>
+                <div class="step-item"><div class="step-number">3</div><p>¡Ganas Premium!</p></div>
+            </div>
+            <div class="share-code-card">
+                <p>Tu ID único de invitación:</p>
+                <div class="code-box" id="display-mi-codigo">...</div>
+                <button class="btn-wa-share" id="btn-compartir-wa">
+                    <i data-lucide="share-2" style="width:18px; height:18px;"></i>
+                    Compartir en WhatsApp
+                </button>
+                <div class="counter-pill">Invitados: <span id="marcador-amigos">0</span> amigos</div>
+            </div>
+            <div>
+                <div class="section-title">🏆 Ranking Semanal de Invitadores</div>
+                <div class="leaderboard-list" id="leaderboard-container">
+                    <div class="leaderboard-item"><span class="leaderboard-pos">🥇</span><span class="leaderboard-name">#ABC123</span><span class="leaderboard-points">12 ref.</span></div>
+                    <div class="leaderboard-item"><span class="leaderboard-pos">🥈</span><span class="leaderboard-name">#XYZ789</span><span class="leaderboard-points">8 ref.</span></div>
+                    <div class="leaderboard-item"><span class="leaderboard-pos">🥉</span><span class="leaderboard-name">#TÚ</span><span class="leaderboard-points">0 ref.</span></div>
+                </div>
+            </div>
+            <div>
+                <div class="section-title">¿Tienes un Código o ID de amigo?</div>
+                <div class="input-claim-box" style="margin-top:4px;">
+                    <input type="text" id="promo-code" placeholder="Introduce el ID o Cupón" enterkeyhint="done">
+                    <button id="btn-promo">Canjear</button>
+                </div>
+            </div>
+            <div>
+                <div class="section-title">Elige tu Meta Premium</div>
+                <div class="cards-stack" style="margin-top:6px;">
+                    <div class="premium-real-card card-silver selected" data-meta="10" role="button" tabindex="0">
+                        <div class="card-top-info"><div class="card-title">SILVER PASS</div><div class="card-duration">7 DÍAS SIN ADS</div></div>
+                        <div class="card-chip"></div>
+                        <div class="card-bottom-info"><div class="card-requirement">Requisito:<span>10 Invitados</span></div><div class="card-status-pill" id="status-card-10">Meta Seleccionada</div></div>
+                    </div>
+                    <div class="premium-real-card card-gold" data-meta="30" role="button" tabindex="0">
+                        <div class="card-top-info"><div class="card-title">GOLD CARD</div><div class="card-duration">1 MES PRO</div></div>
+                        <div class="card-chip"></div>
+                        <div class="card-bottom-info"><div class="card-requirement">Requisito:<span>30 Invitados</span></div><div class="card-status-pill" id="status-card-30">Fijar Meta</div></div>
+                    </div>
+                    <div class="premium-real-card card-diamond" data-meta="100" role="button" tabindex="0">
+                        <div class="card-top-info"><div class="card-title">INFINITY DIAMOND</div><div class="card-duration">1 AÑO TOTAL</div></div>
+                        <div class="card-chip"></div>
+                        <div class="card-bottom-info"><div class="card-requirement">Requisito:<span>100 Invitados</span></div><div class="card-status-pill" id="status-card-100">Fijar Meta</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== OVERLAY DE ANUNCIOS ===== -->
+    <div class="ad-overlay" id="ad-screen">
+        <div class="countdown-circle"><span id="timer-num">10</span></div>
+        <h2 style="color: var(--primary-neon); margin-bottom: 8px;">Ver anuncio para recargar</h2>
+        <p class="mensaje-creditos">Al ver el anuncio recibirás <strong>+1 crédito</strong> y 10 minutos de respuestas ilimitadas.</p>
+        <div class="ad-banner-overlay">
+            <script>
+                atOptions = {
+                    'key': 'e88405805d6648f732aa6dff2a434d85',
+                    'format': 'iframe',
+                    'height': 50,
+                    'width': 320,
+                    'params': {}
+                };
+            </script>
+            <script src="https://www.highperformanceformat.com/e88405805d6648f732aa6dff2a434d85/invoke.js"></script>
+        </div>
+    </div>
+
+    <script src="https://pl30490815.effectivecpmnetwork.com/d6/5c/df/d65cdf7660bd4d5a2c6a2a176f30220c.js"></script>
+    <script>
+        // ===================== CONFIG =====================
+        lucide.createIcons();
+
+        const BACKEND_URL = "https://rizz-urb4.onrender.com";
+        let ID_DISPOSITIVO = "";
+        let usuarioEsPremium = false;
+        let miCodigoDeInvitacion = "";
+        let vibraSeleccionada = 'salvar';
+        let textoExtraido = null;
+        let intervalRelojPremium = null;
+        let creditosDisponibles = 0;
+        let rachaDias = 0;
+        let puedeReclamarHoy = true;
+        let ilimitadoTemp = false;
+        let ilimitadoHasta = null;
+
+        // ===================== HARDWARE ID =====================
+        function generarFirmaHardware() {
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                ctx.textBaseline = "top";
+                ctx.font = "14px 'Arial'";
+                ctx.fillStyle = "#f60";
+                ctx.fillRect(125, 1, 62, 20);
+                ctx.fillStyle = "#069";
+                ctx.fillText("GlowTalkFirma", 2, 15);
+                let hash = 0;
+                const src = canvas.toDataURL();
+                for (let i = 0; i < src.length; i++) {
+                    hash = (hash << 5) - hash + src.charCodeAt(i);
+                    hash |= 0;
+                }
+                return "HW-" + Math.abs(hash);
+            } catch (e) {
+                return "HW-" + Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
+            }
+        }
+        ID_DISPOSITIVO = generarFirmaHardware();
+
+        // ===================== DOM REFS =====================
+        const modalScreen = document.getElementById('modal-screen');
+        const openSettingsBtn = document.getElementById('open-settings');
+        const closeSettingsBtn = document.getElementById('close-settings');
+        const premiumCards = document.querySelectorAll('.premium-real-card');
+        const toneCards = document.querySelectorAll('.tone-card');
+        const btnAction = document.getElementById('btn-action');
+        const adScreen = document.getElementById('ad-screen');
+        const timerNum = document.getElementById('timer-num');
+        const resultsWrapper = document.getElementById('results-wrapper');
+        const responseBox = document.getElementById('response-box');
+        const resp1 = document.getElementById('resp-1');
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const previewContainer = document.getElementById('preview-container');
+        const previewImg = document.getElementById('preview-img');
+        const btnClearImg = document.getElementById('btn-clear-img');
+        const ocrStatus = document.getElementById('ocr-status');
+        const btnCompartirWA = document.getElementById('btn-compartir-wa');
+        const btnPromo = document.getElementById('btn-promo');
+        const promoCodeInput = document.getElementById('promo-code');
+        const inputContexto = document.getElementById('input-contexto');
+        const streakBox = document.getElementById('streak-box');
+        const streakText = document.getElementById('streak-text');
+        const btnRecolectar = document.getElementById('btn-recolectar-diario');
+        const leaderboardContainer = document.getElementById('leaderboard-container');
+
+        // ===================== MODAL =====================
+        openSettingsBtn.addEventListener('click', () => {
+            modalScreen.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            cargarRanking();
+        });
+        closeSettingsBtn.addEventListener('click', () => {
+            modalScreen.style.display = 'none';
+            document.body.style.overflow = '';
+        });
+        modalScreen.addEventListener('click', (e) => {
+            if (e.target === modalScreen) {
+                modalScreen.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        });
+
+        // ===================== PREMIUM CARDS =====================
+        premiumCards.forEach(card => {
+            card.addEventListener('click', () => {
+                premiumCards.forEach(c => {
+                    c.classList.remove('selected');
+                    const metaNum = c.getAttribute('data-meta');
+                    document.getElementById(`status-card-${metaNum}`).innerText = "Fijar Meta";
+                });
+                card.classList.add('selected');
+                const selectedMeta = card.getAttribute('data-meta');
+                document.getElementById(`status-card-${selectedMeta}`).innerText = "Meta Seleccionada";
+            });
+        });
+
+        // ===================== TONE CARDS =====================
+        toneCards.forEach(card => {
+            card.addEventListener('click', () => {
+                toneCards.forEach(c => {
+                    c.classList.remove('active');
+                    c.setAttribute('aria-checked', 'false');
+                });
+                card.classList.add('active');
+                card.setAttribute('aria-checked', 'true');
+                vibraSeleccionada = card.getAttribute('data-tone');
+            });
+        });
+
+        // ===================== SYNC SERVER =====================
+        async function sincronizarServidor() {
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/user-status`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idDispositivo: ID_DISPOSITIVO })
+                });
+                const data = await res.json();
+
+                usuarioEsPremium = data.esPremium;
+                miCodigoDeInvitacion = data.miCodigoReferido;
+                creditosDisponibles = data.creditos || 0;
+                rachaDias = data.rachaDias || 0;
+                puedeReclamarHoy = data.puedeReclamarHoy !== false;
+
+                document.getElementById('perfil-id-usuario').innerText = "ID: #" + data.idUsuario;
+                document.getElementById('display-mi-codigo').innerText = miCodigoDeInvitacion;
+
+                const totalAmigos = data.contadorReferidos || 0;
+                document.getElementById('marcador-amigos').innerText = totalAmigos;
+                actualizarProgresoTarjetas(totalAmigos);
+
+                // Actualizar racha
+                if (!usuarioEsPremium) {
+                    streakBox.style.display = 'flex';
+                    streakText.innerText = `Racha de ${rachaDias} día${rachaDias !== 1 ? 's' : ''}`;
+                    if (rachaDias >= 7) {
+                        streakText.innerHTML += ' 🔥 ¡Bonus activo!';
+                    }
+                    btnRecolectar.disabled = !puedeReclamarHoy;
+                    btnRecolectar.innerText = puedeReclamarHoy ? 'Recolectar' : 'Ya reclamado';
+                } else {
+                    streakBox.style.display = 'none';
+                }
+
+                const contAnuncios = document.getElementById('zona-publicidad');
+                const badgeText = document.getElementById('credits-text');
+
+                // Modo ilimitado temporal
+                if (ilimitadoTemp && ilimitadoHasta && new Date() < new Date(ilimitadoHasta)) {
+                    creditosDisponibles = 999; // truco visual
+                    badgeText.innerText = "♾️ Ilimitado";
+                } else if (ilimitadoTemp) {
+                    ilimitadoTemp = false;
+                    ilimitadoHasta = null;
+                }
+
+                if (usuarioEsPremium && data.finPremium) {
+                    if (contAnuncios) contAnuncios.style.display = 'none';
+                    badgeText.innerText = "👑 PREMIUM";
+                    document.getElementById('premium-timer-box').style.display = 'flex';
+                    iniciarRelojPremiumVisual(data.finPremium);
+                } else {
+                    if (contAnuncios) contAnuncios.style.display = 'flex';
+                    badgeText.innerText = creditosDisponibles > 0 ? `${creditosDisponibles} gratis` : "Sin créditos";
+                    document.getElementById('premium-timer-box').style.display = 'none';
+                    if (intervalRelojPremium) clearInterval(intervalRelojPremium);
+                }
+            } catch (e) {
+                console.error("Error al sincronizar datos:", e);
+            }
+        }
+
+        function iniciarRelojPremiumVisual(fechaFinISO) {
+            if (intervalRelojPremium) clearInterval(intervalRelojPremium);
+            function actualizarReloj() {
+                const ahora = new Date().getTime();
+                const fin = new Date(fechaFinISO).getTime();
+                const distancia = fin - ahora;
+                if (distancia < 0) {
+                    clearInterval(intervalRelojPremium);
+                    document.getElementById('premium-time-string').innerText = "Expirado";
+                    sincronizarServidor();
+                    return;
+                }
+                const dias = Math.floor(distancia / (1000 * 60 * 60 * 24));
+                const horas = Math.floor((distancia % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distancia % (1000 * 60 * 60)) / (1000 * 60));
+                const dStr = dias < 10 ? '0' + dias : dias;
+                const hStr = horas < 10 ? '0' + horas : horas;
+                const mStr = minutes < 10 ? '0' + minutes : minutes;
+                document.getElementById('premium-time-string').innerText = `${dStr}d ${hStr}h ${mStr}m`;
+            }
+            actualizarReloj();
+            intervalRelojPremium = setInterval(actualizarReloj, 60000);
+        }
+
+        function actualizarProgresoTarjetas(amigos) {
+            const metas = [10, 30, 100];
+            metas.forEach(meta => {
+                const pill = document.getElementById(`status-card-${meta}`);
+                if (!pill) return;
+                const card = pill.closest('.premium-real-card');
+                if (amigos >= meta) {
+                    pill.innerText = "🔓 DESBLOQUEADA";
+                    pill.style.background = "rgba(0, 255, 136, 0.15)";
+                    pill.style.color = "#00ff88";
+                } else if (card && card.classList.contains('selected')) {
+                    pill.innerText = `Meta (${amigos}/${meta})`;
+                }
+            });
+        }
+
+        // ===================== RECLAMAR DIARIO =====================
+        btnRecolectar.addEventListener('click', async () => {
+            if (!puedeReclamarHoy) return;
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/daily-reward`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idDispositivo: ID_DISPOSITIVO })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(data.mensaje || "¡Recompensa diaria reclamada!");
+                    await sincronizarServidor();
+                } else {
+                    alert(data.error || "Error al reclamar");
+                }
+            } catch (e) {
+                alert("Error de conexión");
+            }
+        });
+
+        // ===================== RECARGAR POR ANUNCIO (mejorado) =====================
+        async function recargarPorAnuncio() {
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/reward-ad`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idDispositivo: ID_DISPOSITIVO })
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    creditosDisponibles = data.creditos || 0;
+                    // Activar modo ilimitado por 10 minutos
+                    if (data.ilimitadoHasta) {
+                        ilimitadoTemp = true;
+                        ilimitadoHasta = data.ilimitadoHasta;
+                        document.getElementById('credits-text').innerText = "♾️ Ilimitado";
+                    } else {
+                        document.getElementById('credits-text').innerText = `${creditosDisponibles} gratis`;
+                    }
+                    return true;
+                } else {
+                    console.error('Error al recargar:', data.error);
+                    return false;
+                }
+            } catch (e) {
+                console.error('Error de red:', e);
+                return false;
+            }
+        }
+
+        // ===================== ACCIÓN PRINCIPAL =====================
+        btnAction.addEventListener('click', async () => {
+            await sincronizarServidor();
+
+            if (!textoExtraido) {
+                alert("Primero sube una captura de pantalla del chat.");
+                return;
+            }
+
+            // Premium o ilimitado temporal: sin restricción
+            if (usuarioEsPremium || (ilimitadoTemp && ilimitadoHasta && new Date() < new Date(ilimitadoHasta))) {
+                ejecutarConsultaIA();
+                return;
+            }
+
+            if (creditosDisponibles > 0) {
+                ejecutarConsultaIA();
+            } else {
+                adScreen.style.display = 'flex';
+                let tiempo = 10;
+                timerNum.innerText = tiempo;
+                const contador = setInterval(async () => {
+                    tiempo--;
+                    timerNum.innerText = tiempo;
+                    if (tiempo <= 0) {
+                        clearInterval(contador);
+                        adScreen.style.display = 'none';
+
+                        const exito = await recargarPorAnuncio();
+                        if (exito) {
+                            setTimeout(() => {
+                                ejecutarConsultaIA();
+                            }, 500);
+                        } else {
+                            alert("No se pudieron recargar los créditos. Intenta de nuevo.");
+                        }
+                    }
+                }, 1000);
+            }
+        });
+
+        // ===================== EJECUTAR IA =====================
+        async function ejecutarConsultaIA() {
+            btnAction.innerHTML = '<i data-lucide="refresh-cw" class="spin" style="width:18px; height:18px;"></i> Analizando...';
+            lucide.createIcons();
+
+            const contextoExtra = inputContexto.value.trim();
+
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        idDispositivo: ID_DISPOSITIVO,
+                        vibra: vibraSeleccionada,
+                        contexto: contextoExtra,
+                        textoImagen: textoExtraido
+                    })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    resp1.innerText = data.respuesta;
+                    resultsWrapper.style.display = 'block';
+                    resultsWrapper.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    alert(data.error || "Error al procesar la IA.");
+                }
+            } catch (err) {
+                alert("Error al procesar la IA.");
+            } finally {
+                btnAction.innerHTML = '<i data-lucide="wand-2" style="width:18px; height:18px;"></i> Obtener Respuestas Pro';
+                lucide.createIcons();
+                sincronizarServidor();
+            }
+        }
+
+        // ===================== COPIAR TEXTO =====================
+        function copiarTexto() {
+            const texto = resp1.innerText;
+            if (!texto || texto === "Analizando...") return;
+            navigator.clipboard.writeText(texto);
+            responseBox.style.background = 'rgba(0, 240, 255, 0.08)';
+            setTimeout(() => { responseBox.style.background = 'rgba(255,255,255,0.02)'; }, 300);
+        }
+        responseBox.addEventListener('click', copiarTexto);
+
+        // ===================== OCR Y UPLOAD =====================
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                previewImg.src = event.target.result;
+                previewContainer.style.display = 'block';
+                dropZone.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+
+            try {
+                ocrStatus.style.display = 'block';
+                ocrStatus.innerHTML = '📸 <span class="spin">⏳</span> Leyendo captura...';
+
+                const { data: { text } } = await Tesseract.recognize(file, 'spa+eng');
+                textoExtraido = text.trim();
+
+                ocrStatus.innerHTML = '✅ Texto extraído.';
+                setTimeout(() => { ocrStatus.style.display = 'none'; }, 3000);
+
+            } catch (error) {
+                console.error('Error en OCR:', error);
+                ocrStatus.innerHTML = '❌ Error al leer la imagen.';
+                textoExtraido = null;
+            }
+        });
+
+        btnClearImg.addEventListener('click', (e) => {
+            e.stopPropagation();
+            fileInput.value = "";
+            textoExtraido = null;
+            previewContainer.style.display = 'none';
+            dropZone.style.display = 'block';
+            ocrStatus.style.display = 'none';
+        });
+
+        // ===================== COMPARTIR WHATSAPP =====================
+        btnCompartirWA.addEventListener('click', () => {
+            const texto = encodeURIComponent(`¡Únete a GlowTalk! Usa mi código ${miCodigoDeInvitacion} para conseguir créditos gratis y respuestas con IA para ligar. ${window.location.href}`);
+            window.open(`https://wa.me/?text=${texto}`, '_blank');
+        });
+
+        // ===================== CANJEAR CÓDIGO =====================
+        btnPromo.addEventListener('click', async () => {
+            const codigo = promoCodeInput.value.trim().toUpperCase();
+            if (!codigo) return alert("Introduce un código.");
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/referrals/claim`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ idDispositivo: ID_DISPOSITIVO, codigo })
+                });
+                const data = await res.json();
+                alert(data.mensaje || data.error);
+                await sincronizarServidor();
+            } catch (e) {
+                alert("Error al canjear.");
+            }
+        });
+
+        // ===================== CARGAR RANKING =====================
+        async function cargarRanking() {
+            try {
+                const res = await fetch(`${BACKEND_URL}/api/leaderboard`);
+                const data = await res.json();
+                leaderboardContainer.innerHTML = '';
+                if (!data.ranking || data.ranking.length === 0) {
+                    leaderboardContainer.innerHTML = '<div class="leaderboard-item"><span style="color:#8b85b1;">Sin datos todavía</span></div>';
+                    return;
+                }
+                data.ranking.forEach((entry, index) => {
+                    const pos = index + 1;
+                    const icono = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : `#${pos}`;
+                    leaderboardContainer.innerHTML += `
+                        <div class="leaderboard-item">
+                            <span class="leaderboard-pos">${icono}</span>
+                            <span class="leaderboard-name">${entry.idUsuario}</span>
+                            <span class="leaderboard-points">${entry.referidos} ref.</span>
+                        </div>
+                    `;
+                });
+            } catch (e) {
+                console.error('Error al cargar ranking', e);
+            }
+        }
+
+        // ===================== INICIAR =====================
+        sincronizarServidor();
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                sincronizarServidor();
+            }
+        });
+
+        console.log('🔥 GlowTalk con psicología de retención activada');
+    </script>
+</body>
+</html>
